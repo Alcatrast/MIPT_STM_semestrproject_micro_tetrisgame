@@ -1,0 +1,17 @@
+14:47:08 **** Incremental Build of configuration Debug for project task2 ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F401xC -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "task2.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\Users\LaL\STM32CubeIDE\workspace_1.10.1\task2\task2\STM32F401CCUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="task2.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: task2.elf
+ 
+arm-none-eabi-size   task2.elf 
+arm-none-eabi-objdump -h -S  task2.elf  > "task2.list"
+   text	   data	    bss	    dec	    hex	filename
+  30772	    144	   2248	  33164	   818c	task2.elf
+Finished building: default.size.stdout
+ 
+Finished building: task2.list
+ 
+
+14:47:08 Build Finished. 0 errors, 0 warnings. (took 807ms)
+

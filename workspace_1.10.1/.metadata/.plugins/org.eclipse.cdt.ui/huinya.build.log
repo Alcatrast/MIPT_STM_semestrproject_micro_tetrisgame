@@ -1,0 +1,10 @@
+23:04:28 **** Incremental Build of configuration Debug for project huinya ****
+make -j16 all 
+arm-none-eabi-size   huinya.elf 
+   text	   data	    bss	    dec	    hex	filename
+   4688	     20	   1572	   6280	   1888	huinya.elf
+Finished building: default.size.stdout
+ 
+
+23:04:28 Build Finished. 0 errors, 0 warnings. (took 219ms)
+

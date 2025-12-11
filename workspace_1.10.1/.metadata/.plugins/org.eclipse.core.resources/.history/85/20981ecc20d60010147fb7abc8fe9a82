@@ -1,0 +1,667 @@
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : Main program body
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2025 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
+SPI_HandleTypeDef hspi1;
+TIM_HandleTypeDef htim10;
+
+/* USER CODE BEGIN PV */
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
+static void MX_SPI1_Init(void);
+static void MX_ADC1_Init(void);
+static void MX_TIM10_Init(void);
+
+/* USER CODE BEGIN PFP */
+void ST7735_Init_Safe(void);
+void ST7735_DrawPixel(uint16_t x, uint16_t y, uint16_t color);
+void ST7735_FillScreen(uint16_t color);
+void ST7735_WriteString(uint16_t x, uint16_t y, const char* str);
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+
+// Простые цвета (без st7735.h)
+#define ST7735_BLACK   0x0000
+#define ST7735_BLUE    0x001F
+#define ST7735_RED     0xF800
+#define ST7735_GREEN   0x07E0
+#define ST7735_CYAN    0x07FF
+#define ST7735_YELLOW  0xFFE0
+#define ST7735_WHITE   0xFFFF
+
+// Как в змейке
+#define snake_color 0x4BBF
+#define field_color ST7735_WHITE
+#define head_color ST7735_BLUE
+#define fruit_color ST7735_RED
+
+// Тетрис
+#define BOARD_WIDTH 10
+#define BOARD_HEIGHT 20
+#define TOTAL_HEIGHT (BOARD_HEIGHT + 2)
+
+uint16_t board[TOTAL_HEIGHT][BOARD_WIDTH];
+uint16_t colorBoard[TOTAL_HEIGHT][BOARD_WIDTH];
+
+const int shapes[7][4][4][4] = {
+    // I
+    {{{0,0,0,0},{1,1,1,1},{0,0,0,0},{0,0,0,0}}, {{0,0,1,0},{0,0,1,0},{0,0,1,0},{0,0,1,0}}, {{0,0,0,0},{0,0,0,0},{1,1,1,1},{0,0,0,0}}, {{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0}}},
+    // O
+    {{{0,0,0,0},{0,1,1,0},{0,1,1,0},{0,0,0,0}}, {{0,0,0,0},{0,1,1,0},{0,1,1,0},{0,0,0,0}}, {{0,0,0,0},{0,1,1,0},{0,1,1,0},{0,0,0,0}}, {{0,0,0,0},{0,1,1,0},{0,1,1,0},{0,0,0,0}}},
+    // T
+    {{{0,0,0,0},{0,1,0,0},{1,1,1,0},{0,0,0,0}}, {{0,1,0,0},{0,1,1,0},{0,1,0,0},{0,0,0,0}}, {{0,0,0,0},{1,1,1,0},{0,1,0,0},{0,0,0,0}}, {{0,1,0,0},{1,1,0,0},{0,1,0,0},{0,0,0,0}}},
+    // S
+    {{{0,0,0,0},{0,1,1,0},{1,1,0,0},{0,0,0,0}}, {{0,1,0,0},{0,1,1,0},{0,0,1,0},{0,0,0,0}}, {{0,0,0,0},{0,1,1,0},{1,1,0,0},{0,0,0,0}}, {{0,1,0,0},{0,1,1,0},{0,0,1,0},{0,0,0,0}}},
+    // Z
+    {{{0,0,0,0},{1,1,0,0},{0,1,1,0},{0,0,0,0}}, {{0,0,1,0},{0,1,1,0},{0,1,0,0},{0,0,0,0}}, {{0,0,0,0},{1,1,0,0},{0,1,1,0},{0,0,0,0}}, {{0,0,1,0},{0,1,1,0},{0,1,0,0},{0,0,0,0}}},
+    // J
+    {{{0,0,0,0},{1,0,0,0},{1,1,1,0},{0,0,0,0}}, {{0,1,1,0},{0,1,0,0},{0,1,0,0},{0,0,0,0}}, {{0,0,0,0},{1,1,1,0},{0,0,1,0},{0,0,0,0}}, {{0,1,0,0},{0,1,0,0},{1,1,0,0},{0,0,0,0}}},
+    // L
+    {{{0,0,0,0},{0,0,1,0},{1,1,1,0},{0,0,0,0}}, {{0,1,0,0},{0,1,0,0},{0,1,1,0},{0,0,0,0}}, {{0,0,0,0},{1,1,1,0},{1,0,0,0},{0,0,0,0}}, {{1,1,0,0},{0,1,0,0},{0,1,0,0},{0,0,0,0}}}
+};
+
+const uint16_t shapeColors[7] = {
+    ST7735_CYAN, ST7735_YELLOW, 0x781F, ST7735_GREEN, ST7735_RED, ST7735_BLUE, 0xFEA0
+};
+
+typedef struct { int x, y, shape, rotation; } Tetromino;
+Tetromino current, next;
+int dropCounter = 0, dropInterval = 30, score = 0;
+
+// Ввод
+int pr1=0,pr2=0,pr3=0,pr4=0,pr5=0,pr6=0,pr7=0,pr8=0,pr9=0,pr10=0,pr11=0,pr12=0,pr13=0,pr14=0,pr15=0,pr16=0;
+uint32_t adcData[2];
+int flag_k = 1, key = 7;
+
+// =============== ВСТРОЕННАЯ ИНИЦИАЛИЗАЦИЯ ST7735 (без st7735.c/h) ===============
+void ST7735_CS_Set(uint8_t state) { HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, state ? GPIO_PIN_RESET : GPIO_PIN_SET); }
+void ST7735_DC_Set(uint8_t state) { HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, state ? GPIO_PIN_SET : GPIO_PIN_RESET); }
+void ST7735_RST_Set(uint8_t state) { HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, state ? GPIO_PIN_SET : GPIO_PIN_RESET); }
+
+void ST7735_WriteCmd(uint8_t cmd) {
+    ST7735_DC_Set(0);
+    ST7735_CS_Set(1);
+    HAL_SPI_Transmit(&hspi1, &cmd, 1, 100);
+    ST7735_CS_Set(0);
+}
+
+void ST7735_WriteData(uint8_t *data, size_t len) {
+    ST7735_DC_Set(1);
+    ST7735_CS_Set(1);
+    HAL_SPI_Transmit(&hspi1, data, len, 100);
+    ST7735_CS_Set(0);
+}
+
+void ST7735_Init_Safe(void) {
+    // Инициализация GPIO (на случай, если CubeMX не сделал)
+    MX_GPIO_Init();
+
+    // Сброс
+    ST7735_RST_Set(0);
+    HAL_Delay(10);
+    ST7735_RST_Set(1);
+    HAL_Delay(150); // КРИТИЧНО!
+
+    // Команды для "red tab" ST7735 (универсальные)
+    uint8_t cmd;
+
+    cmd = 0x01; ST7735_WriteCmd(cmd); HAL_Delay(150); // SWRESET
+    cmd = 0x11; ST7735_WriteCmd(cmd); HAL_Delay(500); // SLPOUT
+
+    cmd = 0xB1; ST7735_WriteCmd(cmd);
+    uint8_t data[] = {0x01, 0x2C, 0x2D}; ST7735_WriteData(data, 3);
+
+    cmd = 0xB2; ST7735_WriteCmd(cmd);
+    uint8_t data2[] = {0x01, 0x2C, 0x2D}; ST7735_WriteData(data2, 3);
+
+    cmd = 0xB3; ST7735_WriteCmd(cmd);
+    uint8_t data3[] = {0x01, 0x2C, 0x2D, 0x01, 0x2C, 0x2D}; ST7735_WriteData(data3, 6);
+
+    cmd = 0xB4; ST7735_WriteCmd(cmd);
+    uint8_t data4 = 0x07; ST7735_WriteData(&data4, 1);
+
+    cmd = 0xC0; ST7735_WriteCmd(cmd);
+    uint8_t data5[] = {0xA2, 0x02, 0x84}; ST7735_WriteData(data5, 3);
+
+    cmd = 0xC1; ST7735_WriteCmd(cmd);
+    uint8_t data6 = 0xC5; ST7735_WriteData(&data6, 1);
+
+    cmd = 0xC2; ST7735_WriteCmd(cmd);
+    uint8_t data7[] = {0x0A, 0x00}; ST7735_WriteData(data7, 2);
+
+    cmd = 0xC3; ST7735_WriteCmd(cmd);
+    uint8_t data8[] = {0x8A, 0x2A}; ST7735_WriteData(data8, 2);
+
+    cmd = 0xC4; ST7735_WriteCmd(cmd);
+    uint8_t data9[] = {0x8A, 0xEE}; ST7735_WriteData(data9, 2);
+
+    cmd = 0xC5; ST7735_WriteCmd(cmd);
+    uint8_t data10 = 0x0E; ST7735_WriteData(&data10, 1);
+
+    cmd = 0x36; ST7735_WriteCmd(cmd);
+    uint8_t madctl = 0xC0; // MX | MY | BGR — для red tab
+    ST7735_WriteData(&madctl, 1);
+
+    cmd = 0x3A; ST7735_WriteCmd(cmd);
+    uint8_t colmod = 0x05; ST7735_WriteData(&colmod, 1); // 16-bit
+
+    cmd = 0x2A; ST7735_WriteCmd(cmd);
+    uint8_t caset[] = {0x00, 0x00, 0x00, 0x7F}; ST7735_WriteData(caset, 4);
+
+    cmd = 0x2B; ST7735_WriteCmd(cmd);
+    uint8_t raset[] = {0x00, 0x00, 0x00, 0x9F}; ST7735_WriteData(raset, 4);
+
+    cmd = 0xE0; ST7735_WriteCmd(cmd);
+    uint8_t gamma1[] = {0x02,0x1c,0x07,0x12,0x37,0x32,0x29,0x2d,0x29,0x25,0x2B,0x39,0x00,0x01,0x03,0x10};
+    ST7735_WriteData(gamma1, 16);
+
+    cmd = 0xE1; ST7735_WriteCmd(cmd);
+    uint8_t gamma2[] = {0x03,0x1d,0x07,0x06,0x2E,0x2C,0x29,0x2D,0x2E,0x2E,0x37,0x3F,0x00,0x00,0x02,0x10};
+    ST7735_WriteData(gamma2, 16);
+
+    cmd = 0x29; ST7735_WriteCmd(cmd); // DISPON
+    HAL_Delay(100);
+}
+
+void ST7735_SetAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
+    uint8_t cmd = 0x2A;
+    ST7735_WriteCmd(cmd);
+    uint8_t data[] = {x0>>8, x0&0xFF, x1>>8, x1&0xFF};
+    ST7735_WriteData(data, 4);
+
+    cmd = 0x2B;
+    ST7735_WriteCmd(cmd);
+    data[0] = y0>>8; data[1] = y0&0xFF; data[2] = y1>>8; data[3] = y1&0xFF;
+    ST7735_WriteData(data, 4);
+
+    cmd = 0x2C;
+    ST7735_WriteCmd(cmd);
+}
+
+void ST7735_DrawPixel(uint16_t x, uint16_t y, uint16_t color) {
+    if (x >= 128 || y >= 160) return;
+    ST7735_SetAddrWindow(x, y, x, y);
+    uint8_t data[2] = {color >> 8, color & 0xFF};
+    ST7735_WriteData(data, 2);
+}
+
+void ST7735_FillScreen(uint16_t color) {
+    ST7735_SetAddrWindow(0, 0, 127, 159);
+    uint8_t pixel[2] = {color >> 8, color & 0xFF};
+    for (int i = 0; i < 128*160; i++) {
+        ST7735_WriteData(pixel, 2);
+    }
+}
+
+// Очень простой вывод текста (без fonts.h)
+void ST7735_WriteString(uint16_t x, uint16_t y, const char* str) {
+    while (*str) {
+        for (int dy = 0; dy < 8; dy++) {
+            uint8_t row = 0xFF; // сплошная строка (как "█")
+            for (int dx = 0; dx < 6; dx++) {
+                if (dx < 5 && (row & (0x80 >> dx))) {
+                    ST7735_DrawPixel(x + dx, y + dy, ST7735_WHITE);
+                } else {
+                    ST7735_DrawPixel(x + dx, y + dy, ST7735_BLACK);
+                }
+            }
+        }
+        x += 7;
+        str++;
+    }
+}
+// =============== КОНЕЦ ИНИЦИАЛИЗАЦИИ ===============
+
+// Ввод (как в змейке)
+int klav(){
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, 0);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, 1);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, 1);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, 1);
+    if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_5) != GPIO_PIN_SET) { if(pr1 == 0){ return 1; } pr1 = 1; } else pr1 = 0;
+    if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_4) != GPIO_PIN_SET) { if(pr2 == 0){ return 2; } pr2 = 1; } else pr2 = 0;
+    if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_3) != GPIO_PIN_SET) { if(pr3 == 0){ return 3; } pr3 = 1; } else pr3 = 0;
+    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15) != GPIO_PIN_SET) { if(pr4 == 0){ return 4; } pr4 = 1; } else pr4 = 0;
+
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, 1);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, 0);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, 1);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, 1);
+    if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_5) != GPIO_PIN_SET) { if(pr5 == 0){ return 5; } pr5 = 1; } else pr5 = 0;
+    if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_4) != GPIO_PIN_SET) { if(pr6 == 0){ return 6; } pr6 = 1; } else pr6 = 0;
+    if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_3) != GPIO_PIN_SET) { if(pr7 == 0){ return 7; } pr7 = 1; } else pr7 = 0;
+    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15) != GPIO_PIN_SET) { if(pr8 == 0){ return 8; } pr8 = 1; } else pr8 = 0;
+
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, 1);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, 1);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, 0);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, 1);
+    if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_5) != GPIO_PIN_SET) { if(pr9 == 0){ return 9; } pr9 = 1; } else pr9 = 0;
+    if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_4) != GPIO_PIN_SET) { if(pr10 == 0){ return 10; } pr10 = 1; } else pr10 = 0;
+    if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_3) != GPIO_PIN_SET) { if(pr11 == 0){ return 11; } pr11 = 1; } else pr11 = 0;
+    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15) != GPIO_PIN_SET) { if(pr12 == 0){ return 12; } pr12 = 1; } else pr12 = 0;
+
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, 1);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, 1);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, 1);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, 0);
+    if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_5) != GPIO_PIN_SET) { if(pr13 == 0){ return 13; } pr13 = 1; } else pr13 = 0;
+    if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_4) != GPIO_PIN_SET) { if(pr14 == 0){ return 14; } pr14 = 1; } else pr14 = 0;
+    if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_3) != GPIO_PIN_SET) { if(pr15 == 0){ return 15; } pr15 = 1; } else pr15 = 0;
+    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15) != GPIO_PIN_SET) { if(pr16 == 0){ return 16; } pr16 = 1; } else pr16 = 0;
+    return 0;
+}
+
+int joystick(int x, int y){
+    int d = 0;
+    if (x > 2048+600 && 2048 - 600 < y && y < 2048 + 600) d = 8;
+    if (x < 2048-600 && 2048 - 600 < y && y < 2048 + 600) d = 6;
+    if (2048 - 600 < x && x < 2048 + 600 && y > 2048+600) d = 11;
+    if (2048 - 600 < x && x < 2048 + 600 && y < 2048-600) d = 3;
+    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_12) == 0) d = 13;
+    return d;
+}
+
+void input() {
+    int k = 0;
+    if (flag_k == 1) k = klav();
+    if (flag_k == -1) {
+        HAL_ADC_Start_DMA(&hadc1, adcData, 2);
+        k = joystick((int)adcData[0], (int)adcData[1]);
+    }
+    if (k == 13) { flag_k *= -1; key = 7; }
+    if (k != 0 && k != 13) key = k;
+}
+
+// Тетрис логика (упрощённая, но рабочая)
+void clearBoard() {
+    for (int y = 0; y < TOTAL_HEIGHT; y++)
+        for (int x = 0; x < BOARD_WIDTH; x++) {
+            board[y][x] = 0;
+            colorBoard[y][x] = field_color;
+        }
+}
+
+int canPlace(Tetromino* p) {
+    for (int py = 0; py < 4; py++)
+        for (int px = 0; px < 4; px++)
+            if (shapes[p->shape][p->rotation][py][px]) {
+                int x = p->x + px, y = p->y + py;
+                if (x < 0 || x >= BOARD_WIDTH || y < 0 || y >= TOTAL_HEIGHT || board[y][x]) return 0;
+            }
+    return 1;
+}
+
+void placePiece(Tetromino* p, uint16_t color) {
+    for (int py = 0; py < 4; py++)
+        for (int px = 0; px < 4; px++)
+            if (shapes[p->shape][p->rotation][py][px]) {
+                int x = p->x + px, y = p->y + py;
+                if (y >= 0 && y < TOTAL_HEIGHT && x >= 0 && x < BOARD_WIDTH) {
+                    board[y][x] = 1;
+                    colorBoard[y][x] = color;
+                }
+            }
+}
+
+void removePiece(Tetromino* p) {
+    for (int py = 0; py < 4; py++)
+        for (int px = 0; px < 4; px++)
+            if (shapes[p->shape][p->rotation][py][px]) {
+                int x = p->x + px, y = p->y + py;
+                if (y >= 0 && y < TOTAL_HEIGHT && x >= 0 && x < BOARD_WIDTH) {
+                    board[y][x] = 0;
+                    colorBoard[y][x] = field_color;
+                }
+            }
+}
+
+void drawCell(int x, int y, uint16_t color) {
+    for (int dx = 0; dx < 5; dx++)
+        for (int dy = 0; dy < 5; dy++)
+            ST7735_DrawPixel(x*5+5+dx, y*5+20+dy, color);
+}
+
+void drawBoard() {
+    ST7735_FillScreen(field_color);
+    // Простая рамка
+    for (int i = 0; i < 160; i++) {
+        ST7735_DrawPixel(0, i, ST7735_BLACK);
+        ST7735_DrawPixel(1, i, ST7735_BLACK);
+        ST7735_DrawPixel(126, i, ST7735_BLACK);
+        ST7735_DrawPixel(127, i, ST7735_BLACK);
+    }
+    for (int i = 0; i < 128; i++) {
+        ST7735_DrawPixel(i, 0, ST7735_BLACK);
+        ST7735_DrawPixel(i, 1, ST7735_BLACK);
+        ST7735_DrawPixel(i, 158, ST7735_BLACK);
+        ST7735_DrawPixel(i, 159, ST7735_BLACK);
+    }
+    // Поле
+    for (int y = 0; y < BOARD_HEIGHT; y++)
+        for (int x = 0; x < BOARD_WIDTH; x++)
+            if (board[y+1][x]) // смещение на 1 вниз
+                drawCell(x, y, colorBoard[y+1][x]);
+}
+
+void checkLines() {
+    for (int y = TOTAL_HEIGHT-1; y >= 1; y--) {
+        int full = 1;
+        for (int x = 0; x < BOARD_WIDTH; x++) if (!board[y][x]) full = 0;
+        if (full) {
+            for (int yy = y; yy > 1; yy--)
+                for (int x = 0; x < BOARD_WIDTH; x++) {
+                    board[yy][x] = board[yy-1][x];
+                    colorBoard[yy][x] = colorBoard[yy-1][x];
+                }
+            for (int x = 0; x < BOARD_WIDTH; x++) board[1][x] = 0;
+            score += 10;
+            y++; // повторная проверка
+        }
+    }
+}
+
+void setup() {
+    clearBoard();
+    score = 0;
+    srand(HAL_GetTick());
+
+    current.shape = rand() % 7;
+    current.rotation = 0;
+    current.x = 3; current.y = 1;
+
+    next.shape = rand() % 7;
+
+    drawBoard();
+    ST7735_WriteString(5, 5, "TETRIS");
+    char buf[20];
+    sprintf(buf, "Score:%d", score);
+    ST7735_WriteString(5, 150, buf);
+}
+
+void logic() {
+    dropCounter++;
+    if (dropCounter >= dropInterval) {
+        dropCounter = 0;
+        removePiece(&current);
+        current.y++;
+        if (!canPlace(&current)) {
+            current.y--;
+            placePiece(&current, shapeColors[current.shape]);
+            checkLines();
+            current = next;
+            current.x = 3; current.y = 1; current.rotation = 0;
+            next.shape = rand() % 7;
+            if (!canPlace(&current)) {
+                setup();
+                return;
+            }
+        }
+        drawBoard();
+        char buf[20];
+        sprintf(buf, "Score:%d", score);
+        ST7735_WriteString(5, 150, buf);
+    }
+
+    switch (key) {
+    case 6: current.x--; if (!canPlace(&current)) current.x++; else drawBoard(); key = 7; break;
+    case 8: current.x++; if (!canPlace(&current)) current.x++; else drawBoard(); key = 7; break;
+    case 3: current.y++; if (!canPlace(&current)) current.y++; else drawBoard(); key = 7; break;
+    case 11:
+        int oldRot = current.rotation;
+        current.rotation = (current.rotation + 1) % 4;
+        if (!canPlace(&current)) current.rotation = oldRot;
+        else drawBoard();
+        key = 7;
+        break;
+    }
+}
+
+void draw() {
+    char buf[20];
+    sprintf(buf, "Score:%d", score);
+    ST7735_WriteString(5, 150, buf);
+}
+
+/* USER CODE END 0 */
+
+int main(void)
+{
+  HAL_Init();
+  SystemClock_Config();
+  MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_SPI1_Init();
+  MX_ADC1_Init();
+  MX_TIM10_Init();
+
+  /* USER CODE BEGIN 2 */
+  // Убедимся, что SPI медленный
+  __HAL_SPI_DISABLE(&hspi1);
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+  HAL_SPI_Init(&hspi1);
+  __HAL_SPI_ENABLE(&hspi1);
+
+  ST7735_Init_Safe(); // ← наша инициализация
+  setup();
+  HAL_TIM_Base_Start_IT(&htim10);
+  /* USER CODE END 2 */
+
+  while (1) { }
+}
+
+// ... (все MX_*_Init, SystemClock_Config, Error_Handler — остаются как в оригинале)
+// Ниже — копия из стандартного CubeMX-генератора (без изменений)
+
+/**
+  * @brief System Clock Configuration
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = 16;
+  RCC_OscInitStruct.PLL.PLLN = 160;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+static void MX_ADC1_Init(void)
+{
+  ADC_ChannelConfTypeDef sConfig = {0};
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.ScanConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 2;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  sConfig.Channel = ADC_CHANNEL_1;
+  sConfig.Rank = 2;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+static void MX_SPI1_Init(void)
+{
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8; // будет переопределено в main
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+static void MX_TIM10_Init(void)
+{
+  htim10.Instance = TIM10;
+  htim10.Init.Prescaler = 8000;
+  htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim10.Init.Period = 700;
+  htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim10.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim10) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+static void MX_DMA_Init(void)
+{
+  __HAL_RCC_DMA2_CLK_ENABLE();
+  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+}
+
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_6
+                          |GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_RESET);
+
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_6
+                          |GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+}
+
+void Error_Handler(void)
+{
+  __disable_irq();
+  while (1) { }
+}
+
+#ifdef USE_FULL_ASSERT
+void assert_failed(uint8_t *file, uint32_t line)
+{
+}
+#endif

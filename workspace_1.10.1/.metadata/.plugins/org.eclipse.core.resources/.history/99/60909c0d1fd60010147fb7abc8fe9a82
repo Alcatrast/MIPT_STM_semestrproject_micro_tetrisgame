@@ -1,0 +1,841 @@
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : Main program body
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2025 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+#include <string.h>
+#include "st7735.h"
+#include "fonts.h"
+#include <math.h>
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#define snake_color 0x4BBF
+#define field_color 0xFFFF
+#define head_color ST7735_BLUE
+#define fruit_color ST7735_RED
+
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
+
+SPI_HandleTypeDef hspi1;
+
+TIM_HandleTypeDef htim10;
+
+/* USER CODE BEGIN PV */
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
+static void MX_SPI1_Init(void);
+static void MX_ADC1_Init(void);
+static void MX_TIM10_Init(void);
+/* USER CODE BEGIN PFP */
+
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+int pr1 = 0, pr2 = 0, pr3 = 0, pr4 = 0, pr5 = 0, pr6 = 0, pr7 = 0, pr8 = 0, pr9 = 0, pr10 = 0, pr11 = 0, pr12 = 0, pr13 = 0, pr14 = 0, pr15 = 0, pr16 = 0;
+int adcData[2];
+
+
+
+
+int klav(){
+	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, 0);
+	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, 1);
+	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, 1);
+	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, 1);
+
+	  if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_5) != GPIO_PIN_SET) {
+		  if(pr1 == 0){
+			  return 1;
+		  }
+		  pr1 = 1;
+	  }
+	  else{
+		  pr1 = 0;
+	  }
+	  if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_4) != GPIO_PIN_SET) {
+		  if(pr2 == 0){
+			  return 2;
+		  }
+		  pr2 = 1;
+	  }
+	  else{
+		  pr2 = 0;
+	  }
+	  if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_3) != GPIO_PIN_SET) {
+		  if(pr3 == 0){
+			  return 3;
+		  }
+		  pr3 = 1;
+	  }
+	  else{
+		  pr3 = 0;
+	  }
+	  if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15) != GPIO_PIN_SET) {
+		  if(pr4 == 0){
+			  return 4;
+		  }
+		  pr4 = 1;
+	  }
+	  else{
+		  pr4 = 0;
+	  }
+	  //////////////////////////////////////////////////////////////////////////////////
+	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, 1);
+	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, 0);
+	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, 1);
+	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, 1);
+
+	  	  if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_5) != GPIO_PIN_SET) {
+	  		  if(pr5 == 0){
+	  			  return 5;
+	  		  }
+	  		  pr5 = 1;
+	  	  }
+	  	  else{
+	  		  pr5 = 0;
+	  	  }
+	  	  if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_4) != GPIO_PIN_SET) {
+	  		  if(pr6 == 0){
+	  			  return 6;
+	  		  }
+	  		  pr6 = 1;
+	  	  }
+	  	  else{
+	  		  pr6 = 0;
+	  	  }
+	  	  if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_3) != GPIO_PIN_SET) {
+	  		  if(pr7 == 0){
+	  			  return 7;
+	  		  }
+	  		  pr7 = 1;
+	  	  }
+	  	  else{
+	  		  pr7 = 0;
+	  	  }
+	  	  if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15) != GPIO_PIN_SET) {
+	  		  if(pr8 == 0){
+	  			  return 8;
+			  }
+			  pr8 = 1;
+		  }
+		  else{
+			  pr8 = 0;
+		  }
+	    //////////////////////////////////////////////////////////////////////////////////
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, 1);
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, 1);
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, 0);
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, 1);
+
+	  	  if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_5) != GPIO_PIN_SET) {
+	  		  if(pr9 == 0){
+	  			  return 9;
+	  		  }
+	  		  pr9 = 1;
+	  	  }
+	  	  else{
+	  		  pr9 = 0;
+	  	  }
+	  	  if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_4) != GPIO_PIN_SET) {
+	  		  if(pr10 == 0){
+	  			  return 10;
+	  		  }
+	  		  pr10 = 1;
+	  	  }
+	  	  else{
+	  		  pr10 = 0;
+	  	  }
+	  	  if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_3) != GPIO_PIN_SET) {
+	  		  if(pr11 == 0){
+	  			  return 11;
+			  }
+			  pr11 = 1;
+		  }
+		  else{
+			  pr11 = 0;
+	  	  }
+	  	  if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15) != GPIO_PIN_SET) {
+	  		  if(pr12 == 0){
+	  			  return 12;
+			  }
+			  pr12 = 1;
+		  }
+		  else{
+			  pr12 = 0;
+		  }
+	    //////////////////////////////////////////////////////////////////////////////////
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, 1);
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, 1);
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, 1);
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, 0);
+	  	  if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_5) != GPIO_PIN_SET) {
+	  		  if(pr13 == 0){
+	  			  return 13;
+	  		  }
+	  		  pr13 = 1;
+	  	  }
+	  	  else{
+	  		  pr13 = 0;
+	  	  }
+	  	  if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_4) != GPIO_PIN_SET) {
+	  		  if(pr14 == 0){
+	  			  return 14;
+	  		  }
+	  		  pr14 = 1;
+	  	  }
+	  	  else{
+	  		  pr14 = 0;
+	  	  }
+	  	  if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_3) != GPIO_PIN_SET) {
+	  		  if(pr15 == 0){
+	  		  	return 15;
+	  		  }
+	  		  pr15 = 1;
+	  	  }
+	  	  else{
+	  		  pr15 = 0;
+	  	  }
+	  	  if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15) != GPIO_PIN_SET) {
+	  		  if(pr16 == 0){
+	  			  return 16;
+			  }
+			  pr16 = 1;
+		  }
+		  else{
+			  pr16 = 0;
+		  }
+	  return 0;
+}
+
+int joystick(int x, int y){
+  // none
+	int d = 0;
+	// right
+	if (x > 2048+600 && 2048 - 600 < y && y < 2048 + 600)
+	{
+	d = 8;
+	}
+	// left
+	if (x < 2048-600 && 2048 - 600 < y && y < 2048 + 600)
+	{
+	d = 6;
+	}
+	//up
+	if (2048 - 600 < x && x < 2048 + 600 && y > 2048+600)
+	{
+	d = 11;
+	}
+	//down
+	if (2048 - 600 < x && x < 2048 + 600 && y < 2048-600)
+	{
+	d = 3;
+	}
+	if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_12) == 0)
+	{
+	d = 13;
+	}
+	return d;
+
+}
+
+#define HEIGHT 27
+#define WIDTH 24
+
+int snakeTailX[24*30], snakeTailY[24*30];
+int snakeTailLen = 1;
+int gameover, key, score;
+int x, y, fruitx, fruity;
+
+int old_tail_x[24*27];
+int old_tail_y[24*27];
+int old_x, old_y, old_app_x, old_app_y;
+
+/*
+ void input() {
+    if (kbhit()) {
+        switch (tolower(getch())) {
+        case 'a':
+            if(key!=2)
+            key = 1;
+            break;
+        case 'd':
+            if(key!=1)
+            key = 2;
+            break;
+        case 'w':
+            if(key!=4)
+            key = 3;
+            break;
+        case 's':
+            if(key!=3)
+            key = 4;
+            break;
+        case 'x':
+            gameover = 1;
+            break;
+        }
+    }
+}
+ */
+int flag_k = 1;
+void input() {
+	int k=0;
+	if (flag_k == 1){
+		k = klav();
+	}
+	if (flag_k == -1){
+
+		HAL_ADC_Start_DMA(&hadc1, adcData, 2);
+		int x = adcData[0], y = adcData[1];
+		k = joystick(x, y);
+	}
+	if(k==13){
+		flag_k*=-1;
+		key = 7;
+	}
+	if (k!=0 && k!=13){
+		key = k;
+	}
+}
+
+void setup() {
+	snakeTailLen = 1;
+	key = 7;
+	ST7735_FillScreenFast(field_color);
+	for(int i = 0; i < 161; i++){
+		ST7735_DrawPixel(0, i, ST7735_BLACK);
+		ST7735_DrawPixel(1, i, ST7735_BLACK);
+		ST7735_DrawPixel(2, i, ST7735_BLACK);
+		ST7735_DrawPixel(3, i, ST7735_BLACK);
+
+		ST7735_DrawPixel(128, i, ST7735_BLACK);
+		ST7735_DrawPixel(127, i, ST7735_BLACK);
+		ST7735_DrawPixel(126, i, ST7735_BLACK);
+		ST7735_DrawPixel(125, i, ST7735_BLACK);
+	}
+	for(int i = 4; i < 125; i++){
+		ST7735_DrawPixel(i, 0, ST7735_BLACK);
+		ST7735_DrawPixel(i, 1, ST7735_BLACK);
+		ST7735_DrawPixel(i, 2, ST7735_BLACK);
+		ST7735_DrawPixel(i, 3, ST7735_BLACK);
+		ST7735_DrawPixel(i, 4, ST7735_BLACK);
+
+		ST7735_DrawPixel(i, 160-16, ST7735_BLACK);
+		ST7735_DrawPixel(i, 159-16, ST7735_BLACK);
+		ST7735_DrawPixel(i, 158-16, ST7735_BLACK);
+		ST7735_DrawPixel(i, 157-16, ST7735_BLACK);
+		ST7735_DrawPixel(i, 156-16, ST7735_BLACK);
+	}
+
+
+    // Initial coordinates of the snake
+    x = WIDTH / 2;
+    y = HEIGHT / 2;
+    snakeTailX[0] = x-1;
+    snakeTailY[0] = y;
+    // Initial coordinates of the fruit
+    fruitx = rand() % WIDTH;
+    fruity = rand() % HEIGHT;
+    while (fruitx == 0)
+        fruitx = rand() % WIDTH;
+
+    while (fruity == 0)
+        fruity = rand() % HEIGHT;
+
+    score = 0;
+}
+
+void draw_kv(int x, int y, int color){
+	for(int i = 0; i < 25; i++){
+	ST7735_DrawPixel(x*5+4+i/5, y*5+5+i%5, color);
+	}
+}
+
+void draw(){
+	if (old_x != x || old_y != y){
+			draw_kv(old_x, old_y, field_color);
+			draw_kv(x, y, head_color);
+		}
+	for (int i = 0; i < snakeTailLen; i++) {
+		int flag = 0;
+		for (int j = 0; j < snakeTailLen; j++) {
+			if (old_tail_x[i] == snakeTailX[j] && old_tail_y[i] == snakeTailY[j]){flag = 1;}
+		}
+		if (flag == 0){draw_kv(old_tail_x[i], old_tail_y[i], field_color);}
+	    }
+	for (int i = 0; i < snakeTailLen; i++) {
+		int flag = 0;
+		for (int j = 0; j < snakeTailLen; j++) {
+			if (old_tail_x[j] == snakeTailX[i] && old_tail_y[j] == snakeTailY[i]){flag = 1;}
+		}
+		if (flag == 0){draw_kv(snakeTailX[i], snakeTailY[i], snake_color);}
+		}
+	if (old_app_x != fruitx || old_app_y != fruity){
+		draw_kv(old_app_x, old_app_y, field_color);
+		draw_kv(fruitx, fruity, fruit_color);
+	}
+
+	for(int i = 0; i < snakeTailLen; i++){
+		old_tail_x[i] = snakeTailX[i];
+		old_tail_y[i] = snakeTailY[i];
+	}
+	old_x = x;
+	old_y = y;
+	old_app_x = fruitx;
+	old_app_y = fruity;
+
+	char d[10];
+    sprintf(d, "Score: %d           ", score);
+    ST7735_WriteString(4, 142, d, Font_11x18, ST7735_WHITE, ST7735_BLACK);
+
+
+}
+
+void logic() {
+    // Updating the coordinates for continous
+    // movement of snake
+    int prevX = snakeTailX[0];
+    int prevY = snakeTailY[0];
+    int prev2X, prev2Y;
+    snakeTailX[0] = x;
+    snakeTailY[0] = y;
+    for (int i = 1; i < snakeTailLen; i++) {
+        prev2X = snakeTailX[i];
+        prev2Y = snakeTailY[i];
+        snakeTailX[i] = prevX;
+        snakeTailY[i] = prevY;
+        prevX = prev2X;
+        prevY = prev2Y;
+    }
+
+    // Changing the direction of movement of snake
+    switch (key) {
+    case 6:
+        x--;
+        break;
+    case 8:
+        x++;
+        break;
+    case 3:
+        y--;
+        break;
+    case 11:
+        y++;
+        break;
+    default:
+        break;
+    }
+
+    if(key != 7){
+		// If the game is over
+		if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT)
+			setup();
+
+
+		// Checks for collision with the tail (o)
+		for (int i = 0; i < snakeTailLen; i++) {
+			if (snakeTailX[i] == x && snakeTailY[i] == y)
+				setup();
+		}
+    }
+
+    // If snake reaches the fruit
+    // then update the score
+    if (x == fruitx && y == fruity) {
+        fruitx = rand() % WIDTH;
+        fruity = rand() % HEIGHT;
+        while (fruitx == 0)
+            fruitx = rand() % WIDTH;
+
+        // Generation of new fruit
+        while (fruity == 0)
+            fruity = rand() % HEIGHT;
+        score += 1;
+        snakeTailX[snakeTailLen] = 1;
+        snakeTailY[snakeTailLen] = 30;
+         snakeTailLen++;
+    }
+
+}
+
+
+
+
+/* USER CODE END 0 */
+
+/**
+  * @brief  The application entry point.
+  * @retval int
+  */
+int main(void)
+{
+  /* USER CODE BEGIN 1 */
+
+  /* USER CODE END 1 */
+
+  /* MCU Configuration--------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
+
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_SPI1_Init();
+  MX_ADC1_Init();
+  MX_TIM10_Init();
+  /* USER CODE BEGIN 2 */
+
+
+
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+
+  ST7735_Init();
+  setup();
+  HAL_TIM_Base_Start_IT(&htim10);
+  while (1)
+  {
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+
+  }
+  /* USER CODE END 3 */
+}
+
+/**
+  * @brief System Clock Configuration
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  /** Configure the main internal regulator output voltage
+  */
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = 16;
+  RCC_OscInitStruct.PLL.PLLN = 160;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+
+  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.ScanConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 2;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_1;
+  sConfig.Rank = 2;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief SPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI1_Init(void)
+{
+
+  /* USER CODE BEGIN SPI1_Init 0 */
+
+  /* USER CODE END SPI1_Init 0 */
+
+  /* USER CODE BEGIN SPI1_Init 1 */
+
+  /* USER CODE END SPI1_Init 1 */
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI1_Init 2 */
+
+  /* USER CODE END SPI1_Init 2 */
+
+}
+
+/**
+  * @brief TIM10 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM10_Init(void)
+{
+
+  /* USER CODE BEGIN TIM10_Init 0 */
+
+  /* USER CODE END TIM10_Init 0 */
+
+  /* USER CODE BEGIN TIM10_Init 1 */
+
+  /* USER CODE END TIM10_Init 1 */
+  htim10.Instance = TIM10;
+  htim10.Init.Prescaler = 8000;
+  htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim10.Init.Period = 700;
+  htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim10.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim10) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM10_Init 2 */
+
+  /* USER CODE END TIM10_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA2_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+
+}
+
+/**
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_6
+                          |GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PC13 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB0 PB1 PB2 PB6
+                           PB7 PB8 PB9 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_6
+                          |GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PA12 PA15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB3 PB4 PB5 */
+  GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+}
+
+/* USER CODE BEGIN 4 */
+
+/* USER CODE END 4 */
+
+/**
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
+  __disable_irq();
+  while (1)
+  {
+  }
+  /* USER CODE END Error_Handler_Debug */
+}
+
+#ifdef  USE_FULL_ASSERT
+/**
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */
